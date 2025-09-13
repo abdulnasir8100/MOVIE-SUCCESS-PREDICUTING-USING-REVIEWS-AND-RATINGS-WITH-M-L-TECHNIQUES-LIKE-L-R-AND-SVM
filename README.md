@@ -8,7 +8,7 @@ This project predicts whether a movie will be a Hit or Flop by analyzing ratings
 ![alt text](image/image3.png)
 # 🎬 3. Conflict Film (Mixed Reviews, Polarizing Ratings)
 ![alt text](image/image4.png)
-# DataBase for Store the reviews,ratings and film name for feature reference.
+# DataBase for Store the reviews,ratings and film name for feature helps.
 ![alt text](image/image5.png)
 
 
