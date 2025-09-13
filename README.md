@@ -12,7 +12,7 @@ This project predicts whether a movie will be a Hit or Flop by analyzing ratings
 ![alt text](image/image5.png)
 
 
-# Information on work:
+# Information on my work:
 -- Collecting Revews and Ratings Dataset from IMDb and Kaggle platform!
 
 -- import the impordent packages like SVM, Logistic Rreggression, pandas, numpy, etc.
