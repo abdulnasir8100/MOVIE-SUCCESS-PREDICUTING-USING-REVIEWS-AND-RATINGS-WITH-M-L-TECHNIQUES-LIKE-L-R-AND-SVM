@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Movie Success Prediction</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+
+  <div class="bg-white shadow-lg rounded-2xl p-8 w-full max-w-2xl">
+    <h1 class="text-2xl font-bold text-center mb-6">🎬 Movie Success Prediction</h1>
+
+    <!-- Form -->
+    <form id="predictionForm" class="space-y-4">
+      <div>
+        <label class="block text-gray-700 font-semibold">Movie Name</label>
+        <input type="text" id="movieName" placeholder="Enter movie name"
+          class="w-full p-2 border rounded-lg" required>
+      </div>
+
+      <div>
+        <label class="block text-gray-700 font-semibold">IMDb Rating</label>
+        <input type="number" step="0.1" id="rating" placeholder="Enter rating (1–10)"
+          class="w-full p-2 border rounded-lg" required>
+      </div>
+
+      <div>
+        <label class="block text-gray-700 font-semibold">Genre</label>
+        <select id="genre" class="w-full p-2 border rounded-lg">
+          <option>Action</option>
+          <option>Drama</option>
+          <option>Comedy</option>
+          <option>Thriller</option>
+          <option>Romance</option>
+          <option>Horror</option>
+          <option>Sci-Fi</option>
+          <option>Animation</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-gray-700 font-semibold">Review</label>
+        <textarea id="review" placeholder="Enter your review"
+          class="w-full p-2 border rounded-lg"></textarea>
+      </div>
+
+      <button type="submit"
+        class="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600">
+        Predict
+      </button>
+    </form>
+
+    <!-- Output -->
+    <div id="output" class="mt-6 hidden">
+      <h2 class="text-xl font-bold">Prediction Result:</h2>
+      <p id="result" class="text-lg mt-2"></p>
+      <p id="confidence" class="text-gray-600"></p>
+      <ul id="reasons" class="list-disc list-inside text-gray-700 mt-2"></ul>
+    </div>
+  </div>
+
+<script>
+// ----- Sentiment Analysis -----
+function analyzeSentiment(text) {
+  const positive = ["good","great","excellent","amazing","awesome","nice","wonderful","fantastic","enjoyed","loved"];
+  const negative = ["bad","boring","terrible","worst","awful","flop","poor","weak","waste","disappointing","sad"];
+  const tokens = text.toLowerCase().split(/\W+/);
+
+  let score = 0;
+  let posHits = [];
+  let negHits = [];
+
+  tokens.forEach(t => {
+    if (positive.includes(t)) { score++; posHits.push(t); }
+    if (negative.includes(t)) { score--; negHits.push(t); }
+  });
+
+  let sentiment = "neutral";
+  if (score > 0) sentiment = "positive";
+  else if (score < 0) sentiment = "negative";
+
+  return { sentiment, posHits, negHits };
+}
+
+// ----- Prediction -----
+function simulatePrediction(review, rating) {
+  const { sentiment, posHits, negHits } = analyzeSentiment(review);
+
+  let reasons = [];
+
+  if (rating <= 5.5 && sentiment === "negative") {
+    reasons.push(`Low rating (${rating}) and negative review.`);
+    if (negHits.length) reasons.push(`Negative cues: ${negHits.join(", ")}.`);
+    return { result: "Flop ❌", confidence: 95, reasons };
+  }
+
+  if (rating >= 6.5 && sentiment === "positive") {
+    reasons.push(`High rating (${rating}) and positive review.`);
+    if (posHits.length) reasons.push(`Positive cues: ${posHits.join(", ")}.`);
+    return { result: "Hit ⭐", confidence: 95, reasons };
+  }
+
+  if ((rating <= 5.5 && sentiment === "positive") ||
+      (rating >= 6.5 && sentiment === "negative")) {
+    return {
+      result: "Inconsistent Input ⚠️",
+      confidence: null,
+      reasons: [
+        `Rating = ${rating}, but review sentiment = ${sentiment}.`,
+        "Your inputs conflict. Please recheck."
+      ]
+    };
+  }
+
+  return {
+    result: "Uncertain 🤔",
+    confidence: 65,
+    reasons: ["Rating is mid-range or review is neutral."]
+  };
+}
+
+// ----- Handle Form -----
+document.getElementById("predictionForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+
+  const movieName = document.getElementById("movieName").value.trim();
+  const rating = parseFloat(document.getElementById("rating").value);
+  const review = document.getElementById("review").value.trim();
+
+  const prediction = simulatePrediction(review, rating);
+
+  document.getElementById("output").classList.remove("hidden");
+  document.getElementById("result").textContent =
+    `Movie: ${movieName} → ${prediction.result}`;
+  document.getElementById("confidence").textContent =
+    prediction.confidence ? `Confidence: ${prediction.confidence}%` : "";
+
+  const reasonsList = document.getElementById("reasons");
+  reasonsList.innerHTML = "";
+  prediction.reasons.forEach(r => {
+    const li = document.createElement("li");
+    li.textContent = r;
+    reasonsList.appendChild(li);
+  });
+
+  // 🔹 Save result in Database via Flask
+  fetch("/save", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      movie_name: movieName,
+      rating: rating,
+      review: review,
+      prediction: prediction.result
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    console.log("Saved to DB:", data);
+  })
+  .catch(err => console.error("Error saving:", err));
+});
+</script>
+</body>
+</html>
